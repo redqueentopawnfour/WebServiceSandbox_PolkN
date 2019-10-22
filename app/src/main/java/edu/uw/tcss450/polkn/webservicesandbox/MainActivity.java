@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -20,6 +21,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -40,6 +42,8 @@ public class MainActivity extends AppCompatActivity {
         mButton = findViewById(R.id.
                 buttonHelloStatus
         );
+
+        findViewById(R.id.buttonHelloActions).setOnClickListener(this::handleHelloActionsButton);
     }
 
     public void buttonClick(View view) {
@@ -80,6 +84,53 @@ public class MainActivity extends AppCompatActivity {
                 throw new IllegalStateException("Not implemented");
         }
     }
+
+    /**
+     * Handler for the button helloActions.
+     * @param helloActionsButton the button itself
+     */
+    private void handleHelloActionsButton(final View helloActionsButton) {
+        String message = ((EditText) findViewById(R.id.inputEditText)).getText().toString();
+
+        //build the web service URL
+        Uri uri = new Uri.Builder()
+                .scheme("https")
+                .appendPath(getString(R.string.ep_base_url))
+                .appendPath(getString(R.string.ep_hello_args))
+                .build();
+
+        //build the JSONObject
+        JSONObject msg = new JSONObject();
+        try {
+            msg.put("name", message);
+        } catch (JSONException e) {
+            Log.e("ACTION", "Error creating JSON: " + e.getMessage());
+        }
+
+        //instantiate and execute the AsyncTask.
+        new SendPostAsyncTask.Builder(uri.toString(), msg)
+                .onPreExecute(this::handleOnPre)
+                .onPostExecute(this::handleOnPost)
+                .build().execute();
+    }
+
+    /**
+     * Handler for the AsyncTask's onPreExecute
+     */
+    private void handleOnPre() {
+        findViewById(R.id.buttonHelloActions).setEnabled(false);
+        mProgressBar.setVisibility(ProgressBar.VISIBLE);
+    }
+
+    /**
+     * Handler for the AsyncTask's onPostExecute
+     */
+    private void handleOnPost(final String result) {
+        mProgressBar.setVisibility(ProgressBar.GONE);
+        mTextView.setText(result);
+        findViewById(R.id.buttonHelloActions).setEnabled(true);
+    }
+
 
     private class TestWebServiceTask extends AsyncTask<String, Void, String> {
         @Override
